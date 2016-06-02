@@ -1,0 +1,67 @@
+resources:
+  - name: email-resource-source
+    type: git
+    source:
+      uri: https://github.com/yjyum/email-resource
+      branch: master
+  - name: send-an-email
+    type: email
+    source:
+      smtp:
+        host: {{smtp-host}}
+        port: {{smtp-port}}
+        username: {{smtp-username}}
+        password: {{smtp-password}}
+      from: {{email-from}}
+      to: [ {{email-to}} ]
+
+jobs:
+  - name: demo-email-an-artifact-sha
+    plan:
+      - get: email-resource-source
+        trigger: false
+      - task: faketask
+        config:
+          platform: linux
+          image: docker:///virtmerlin/deploy-worker
+          inputs:
+            - name: email-resource-source
+          run:
+            path: lss
+        on_failure:
+          task: prep-email
+          file: email-resource-source/prep-email.yml
+          on_success:
+            put: send-an-email
+            params:
+              subject: email/generated-subject
+              body: email/generated-body
+
+
+#          inputs:
+#            - name: email-resource-source
+#          file: email-resource-source/prep-email.yml
+
+#          config:
+#            params:
+#              concourse_api_url: {{concourse_api_url}}
+#              concourse_username: {{concourse_username}}
+#              concourse_password: {{concourse_password}}
+      - put: send-an-email
+        params:
+          subject: email-out/generated-subject
+          body: email-out/generated-body
+
+      - task: display
+        config:
+          platform: linux
+          image: docker:///virtmerlin/deploy-worker
+          inputs:
+            - name: email-out
+          run:
+            path: ls
+            args: [-alR]
+#      - put: send-an-email
+#        params:
+#          subject: email-out/generated-subject
+#          body: email-out/generated-body
