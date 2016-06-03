@@ -13,4 +13,7 @@ output_body_file=email-out/$output_body_file
 output_subject_file=email-out/$output_subject_file
 
 #./fly -t ccp watch -j $job > $output_subject_file
-./fly -t ccp builds -j $job -c 1 > $output_body_file
+# ./fly -t ccp builds -j $job -c 1 > $output_body_file
+
+echo "failure" > $output_subject_file
+echo "see http://10.146.63.15:8080/pipelines/ for details" > $output_body_file

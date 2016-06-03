@@ -29,13 +29,51 @@ jobs:
           run:
             path: lss
         on_failure:
-          task: prep-email
-          file: email-resource-source/prep-email.yml
-          on_success:
-            put: send-an-email
-            params:
-              subject: email/generated-subject
-              body: email/generated-body
+          - task: trigger-send-an-email
+            file: email-resource-source/trigger-send-email.yml
+            config:
+              params:
+                concourse_api_url: {{concourse_api_url}}
+                concourse_username: {{concourse_username}}
+                concourse_password: {{concourse_password}}
+                trigger_job: email/send-an-email
+
+  - name: send-an-email
+    plan:
+      - task: prep-email
+        config:
+          platform: linux
+          image: docker:///virtmerlin/deploy-worker
+          inputs:
+            - name: email-resource-source
+          run:
+            path: email-resource-source/prep-email.sh
+          outputs:
+            - name: email-out
+          params:
+            output_subject_file: generated-subject
+            output_body_file: generated-body
+            concourse_api_url: {{concourse_api_url}}
+            concourse_username: {{concourse_username}}
+            concourse_password: {{concourse_password}}
+            job: email/demo-email-an-artifact-sha
+      - put: send-an-email
+        params:
+          subject: email-out/generated-subject
+          body: email-out/generated-body
+
+
+
+
+
+          # on_success:
+          #   put: send-an-email
+          #   config:
+          #     inputs: 
+          #       - name: email-out
+          #   params:
+          #     subject: email-out/generated-subject
+          #     body: email-out/generated-body
 
 
 #          inputs:
@@ -47,20 +85,20 @@ jobs:
 #              concourse_api_url: {{concourse_api_url}}
 #              concourse_username: {{concourse_username}}
 #              concourse_password: {{concourse_password}}
-      - put: send-an-email
-        params:
-          subject: email-out/generated-subject
-          body: email-out/generated-body
+      # - put: send-an-email
+      #   params:
+      #     subject: email-out/generated-subject
+      #     body: email-out/generated-body
 
-      - task: display
-        config:
-          platform: linux
-          image: docker:///virtmerlin/deploy-worker
-          inputs:
-            - name: email-out
-          run:
-            path: ls
-            args: [-alR]
+      # - task: display
+      #   config:
+      #     platform: linux
+      #     image: docker:///virtmerlin/deploy-worker
+      #     inputs:
+      #       - name: email-out
+      #     run:
+      #       path: ls
+      #       args: [-alR]
 #      - put: send-an-email
 #        params:
 #          subject: email-out/generated-subject
