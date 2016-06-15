@@ -16,7 +16,7 @@ resources:
       to: [ {{email-to}} ]
 
 jobs:
-  - name: demo-email-an-artifact-sha
+  - name: job1
     plan:
       - get: email-resource-source
         trigger: false
@@ -28,15 +28,19 @@ jobs:
             - name: email-resource-source
           run:
             path: lss
-        on_failure:
-          - task: trigger-send-an-email
-            file: email-resource-source/trigger-send-email.yml
-            config:
-              params:
-                concourse_api_url: {{concourse_api_url}}
-                concourse_username: {{concourse_username}}
-                concourse_password: {{concourse_password}}
-                trigger_job: email/send-an-email
+
+  - name: job2 
+    plan:
+      - get: email-resource-source
+        trigger: false
+      - task: faketask
+        config:
+          platform: linux
+          image: docker:///virtmerlin/deploy-worker
+          inputs:
+            - name: email-resource-source
+          run:
+            path: lss
 
   - name: send-an-email
     plan:
@@ -56,7 +60,8 @@ jobs:
             concourse_api_url: {{concourse_api_url}}
             concourse_username: {{concourse_username}}
             concourse_password: {{concourse_password}}
-            job: email/demo-email-an-artifact-sha
+            pipeline: email
+            pipeline_jobs: job1, job2
       - put: send-an-email
         params:
           subject: email-out/generated-subject
